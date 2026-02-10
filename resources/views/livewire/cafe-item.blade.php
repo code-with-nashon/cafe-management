@@ -1,45 +1,65 @@
 <?php
-
 use Livewire\Volt\Component;
 use App\Models\MenuItem;
 
 new class extends Component {
-    public $items;
 
-    public function mount()
+    public function with()
     {
-        $this->items = MenuItem::all();
+        return [
+            'items' => MenuItem::all(),
+        ];
     }
 
-    public function order($itemId)
-    {   
+    public function addToBasket($itemId)
+    {
         $item = MenuItem::find($itemId);
-        session()->flash('success', "Umeongeza {$item->name} kwenye oda yako!");
+        $basket = session()->get('basket', []);
+
+        if(isset($basket[$itemId])) {
+            $basket[$itemId]['quantity']++;
+        } else {
+            $basket[$itemId] = [
+                "name" => $item->name,
+                "quantity" => 1,
+                "price" => $item->price,
+            ];
+        }
+
+        session()->put('basket', $basket);
+
+        // Hii inatuma signal kwa Basket component ijisasishe
+        $this->dispatch('basket-updated');
+
+        session()->flash('success', "Umeongeza {$item->name} kwenye kapu!");
     }
-}; 
+}; ?>
 
-?>
-
-<div class="grid grid-cols-1 md:grid-cols-2gap-4 p-4">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-4">
     @foreach($items as $item)
-        <div class="bg-white p-6 rounded-2xl shadow-sm border borderorange-100">
-            <h3 class="text-xl font-bold text-gray-800">{{ $item->name }}</h3>
-            <p class="text-sm text-gray-500 mb-4">{{ $item->description }}</p>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-orange-100 flex flex-col justify-between">
+            <div>
+                <h3 class="text-xl font-bold text-gray-800">{{ $item->name }}</h3>
+                <p class="text-sm text-gray-500 mb-4">{{ $item->description }}</p>
+            </div>
 
-            <div class="flex justify-between items-center mt-auto">
-                <span class="text-lg font-semibold text-orang-600">
+            <div class="flex justify-between items-center mt-4">
+                <span class="text-lg font-semibold text-orange-600">
                     {{ number_format($item->price) }} TZS
                 </span>
 
-                <button wire:click="order({{ $item->id }})" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-full text-sm font-bold transition">
-                    Weka Oda
+                <button
+                    wire:click="addToBasket({{ $item->id }})"
+                    class="bg-orange-500 hover:bg-orange-600 text-dark px-6 py-2 rounded-full text-sm font-bold transition shadow-md"
+                >
+                    Weka Kapuni
                 </button>
             </div>
         </div>
     @endforeach
 
     @if (session()->has('success'))
-        <div class="fixed bottom-5 right-5 bg-green-500 text-white p-4 rounded-lg">
+        <div class="fixed bottom-5 right-5 bg-green-600 text-white px-6 py-3 rounded-xl shadow-2xl transition-all">
             {{ session('success') }}
         </div>
     @endif
