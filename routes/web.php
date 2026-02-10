@@ -7,3 +7,7 @@ Route::get('/', function () {
 });
 
 Route::livewire('/post/create', 'pages::post.create');
+
+Route::get('/checkout', function () {
+    return view('checkout-page');
+});

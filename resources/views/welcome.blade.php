@@ -8,5 +8,9 @@
         <div class="lg:col-span-1">
             <livewire:basket />
         </div>
+
+        <div>
+            <livewire:checkout />
+        </div>
     </div>
 </x-layouts.app>
