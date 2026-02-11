@@ -1,7 +1,7 @@
 <?php
 
 use Livewire\Volt\Component;
-use Livewire\Attributes\On; // Added for real-time updates
+use Livewire\Attributes\On; 
 
 new class extends Component {
     public $customer_name = '';
@@ -13,12 +13,11 @@ new class extends Component {
         $this->calculateTotal();
     }
 
-    // This listener ensures the total updates if the basket changes
-    #[On('basket-updated')]
+
     public function calculateTotal()
     {
         $basket = session()->get('basket', []);
-        // FIXED: Changed '-' to '='
+
         $this->total_amount = collect($basket)->sum(fn($item) => $item['price'] * $item['quantity']);
     }
 
@@ -40,7 +39,6 @@ new class extends Component {
 
         session()->forget('basket');
 
-        // Use 'success' to match your welcome page flash alert
         session()->flash('success', "Oda Na. #{$order->id} imepokelewa! Malipo ya M-Pesa yanashughulikiwa.");
 
         return redirect()->to('/');
