@@ -1,7 +1,7 @@
 <?php
 
 use Livewire\Volt\Component;
-use Livewire\Attributes\On; 
+use Livewire\Attributes\On;
 
 new class extends Component {
     public $customer_name = '';
@@ -25,8 +25,34 @@ new class extends Component {
     {
         $this->validate([
             'customer_name' => 'required|min:3',
-            'phone_number' => ['required', 'regex:/^(0)[671][0-9]{8}$/'],
+            // 'phone_number' => ['required', 'regex:/^(0)[671][0-9]{8}$/'],
+            'phone_number' => 'required|numeric|digits_between:10,12',
         ]);
+
+        try {
+            $sessionID = $thid->getSessionId();
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $sessionID,
+                'Origin' => 'developer.vodacom.co.tz',
+                'Content-Type' => 'application/json',
+            ])->post('https://openapi.m-pesa.vodacom.co.tz/sandbox/ipg/v2/vodatanzania/c2bPayment/singleStage/', [
+                'input_Amount' => $this->total_amount,
+                'input_Country' => 'TZN',
+                'input_Currency' => 'TZS',
+                'input_CustomerMSISDN' => $this->phone_number,
+                'input_ServiceProviderCode' => '000000',
+                'input_TransactionReference' => 'CAFE' . time(),
+                'input_PurchasedItemsDesc' => 'Cafe Order Payment',
+            ]);
+
+            if($response->json()['output_ResponseCode'] === 'INS-0') {
+                session()->flash('success', 'Malipo yameanza. Tafadhali kamilisha kwenye simu yako.');
+                return redirect()->to('/');
+            }
+        } catch(\Exception $e) {
+            session()->flash('error', 'Samahani, itilafu imetokea ' . $e->getMessage());
+        }
 
         $formattedPhone = '255' . substr($this->phone_number, 1);
 
@@ -42,6 +68,23 @@ new class extends Component {
         session()->flash('success', "Oda Na. #{$order->id} imepokelewa! Malipo ya M-Pesa yanashughulikiwa.");
 
         return redirect()->to('/');
+    }
+
+    private function getSessionId()
+    {
+        $publicKey = env('VODACOM_PUBLIC_KEY');
+        $apiKey = env('VODACOM_API_KEY');
+
+        //encrypting the key
+        openssl_public_encrypt($apiKey, $encrypted, $publicKey, OPENSSL_PKCS1_PADDING);
+        $bearerToken = base64_encode($encrypted);
+
+        $response = Http::withHeaders([
+            'Authorization'=> 'Bearer ' . $bearerToken,
+            'Origin' => 'developer.vodacom.co.tz',
+        ])->get('https://openapi.m-pesa.vodacom.co.tz/sandbox/ipg/v2/vodatanzania/getSession/');
+
+        return $response->json()['output_sessionID'];
     }
 }; ?>
 
@@ -74,5 +117,11 @@ new class extends Component {
                 class="w-full bg-green-600 hover:bg-green-700 text-dark font-bold py-4 rounded-xl shadow-lg transform active:scale-95 transition duration-200 mt-4">
             Lipia sasa (M-Pesa)
         </button>
+
+        @if (session()->has('success'))
+            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+                {{ session('success') }}
+            </div>
+        @endif
     </form>
 </div>
